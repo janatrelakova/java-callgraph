@@ -66,30 +66,34 @@ public class JCallGraph {
                     System.err.println("Jar file " + arg + " does not exist");
                 }
 
-                try (JarFile jar = new JarFile(f)) {
-                    Stream<JarEntry> entries = enumerationAsStream(jar.entries());
-
-                    String methodCalls = entries.
-                            flatMap(e -> {
-                                if (e.isDirectory() || !e.getName().endsWith(".class"))
-                                    return (new ArrayList<String>()).stream();
-
-                                ClassParser cp = new ClassParser(arg, e.getName());
-                                return getClassVisitor.apply(cp).start().methodCalls().stream();
-                            }).
-                            map(s -> s + "\n").
-                            reduce(new StringBuilder(),
-                                    StringBuilder::append,
-                                    StringBuilder::append).toString();
-
-                    BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
-                    log.write(methodCalls);
-                    log.close();
-                }
+                analyzeJar(arg, f, getClassVisitor);
             }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private static void analyzeJar(String arg, File f, Function<ClassParser, ClassVisitor> getClassVisitor) throws IOException {
+        try (JarFile jar = new JarFile(f)) {
+            Stream<JarEntry> entries = enumerationAsStream(jar.entries());
+
+            String methodCalls = entries.
+                    flatMap(e -> {
+                        if (e.isDirectory() || !e.getName().endsWith(".class"))
+                            return (new ArrayList<String>()).stream();
+
+                        ClassParser cp = new ClassParser(arg, e.getName());
+                        return getClassVisitor.apply(cp).start().methodCalls().stream();
+                    }).
+                    map(s -> s + "\n").
+                    reduce(new StringBuilder(),
+                            StringBuilder::append,
+                            StringBuilder::append).toString();
+
+            BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
+            log.write(methodCalls);
+            log.close();
         }
     }
 
