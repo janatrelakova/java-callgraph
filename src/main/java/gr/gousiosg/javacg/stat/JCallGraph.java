@@ -47,21 +47,31 @@ import org.apache.bcel.classfile.ClassParser;
 public class JCallGraph {
 
     public static void main(String[] args) {
+
+        List<File> jars = new ArrayList<>();
+
         try {
             for (String arg : args) {
+                File f = getFile(arg);
+                jars.add(f);
+            }
 
-                File f = new File(arg);
-
-                if (!f.exists()) {
-                    System.err.println("Jar file " + arg + " does not exist");
-                }
-
-                analyzeJar(arg, f);
+            for (File f : jars) {
+                analyzeJar(f.getAbsolutePath(), f);
             }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static File getFile(String arg) {
+        File f = new File(arg);
+
+        if (!f.exists()) {
+            System.err.println("Jar file " + arg + " does not exist");
+        }
+        return f;
     }
 
     private static Function<ClassParser, ClassVisitor> getClassVisitorFunction() {
