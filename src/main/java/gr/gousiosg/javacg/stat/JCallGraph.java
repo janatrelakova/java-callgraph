@@ -47,16 +47,6 @@ import org.apache.bcel.classfile.ClassParser;
 public class JCallGraph {
 
     public static void main(String[] args) {
-
-        Function<ClassParser, ClassVisitor> getClassVisitor =
-                (ClassParser cp) -> {
-                    try {
-                        return new ClassVisitor(cp.parse());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                };
-
         try {
             for (String arg : args) {
 
@@ -66,7 +56,7 @@ public class JCallGraph {
                     System.err.println("Jar file " + arg + " does not exist");
                 }
 
-                analyzeJar(arg, f, getClassVisitor);
+                analyzeJar(arg, f);
             }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
@@ -74,7 +64,18 @@ public class JCallGraph {
         }
     }
 
-    private static void analyzeJar(String arg, File f, Function<ClassParser, ClassVisitor> getClassVisitor) throws IOException {
+    private static Function<ClassParser, ClassVisitor> getClassVisitorFunction() {
+        return (ClassParser cp) -> {
+            try {
+                return new ClassVisitor(cp.parse());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+    }
+
+    private static void analyzeJar(String arg, File f) throws IOException {
+        Function<ClassParser, ClassVisitor> getClassVisitor = getClassVisitorFunction();
         try (JarFile jar = new JarFile(f)) {
             Stream<JarEntry> entries = enumerationAsStream(jar.entries());
 
