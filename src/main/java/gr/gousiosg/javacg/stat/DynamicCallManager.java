@@ -70,7 +70,7 @@ public class DynamicCallManager {
      * @see #linkCalls(Method)
      */
     public void retrieveCalls(Method method, JavaClass jc) {
-        if (method.isAbstract() || method.isNative()) {
+        if (method.isAbstract() || method.isNative() || Settings.isExcluded(jc.getPackageName())) {
             // No code to consider
             return;
         }
@@ -81,7 +81,11 @@ public class DynamicCallManager {
         while (matcher.find()) {
             int bootIndex = Integer.parseInt(matcher.group(1));
             BootstrapMethod bootMethod = boots[bootIndex];
-            int calledIndex = bootMethod.getBootstrapArguments()[CALL_HANDLE_INDEX_ARGUMENT];
+            int[] bootstrapArgs = bootMethod.getBootstrapArguments();
+            if (bootstrapArgs.length < CALL_HANDLE_INDEX_ARGUMENT + 1) {
+                continue;
+            }
+            int calledIndex = bootstrapArgs[CALL_HANDLE_INDEX_ARGUMENT];
             String calledName = getMethodNameFromHandleIndex(cp, calledIndex);
             String callerName = method.getName();
             dynamicCallers.put(calledName, callerName);

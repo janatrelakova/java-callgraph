@@ -47,49 +47,70 @@ import org.apache.bcel.classfile.ClassParser;
 public class JCallGraph {
 
     public static void main(String[] args) {
-
-        Function<ClassParser, ClassVisitor> getClassVisitor =
-                (ClassParser cp) -> {
-                    try {
-                        return new ClassVisitor(cp.parse());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                };
+        List<File> jars = new ArrayList<>();
 
         try {
             for (String arg : args) {
-
-                File f = new File(arg);
-
-                if (!f.exists()) {
-                    System.err.println("Jar file " + arg + " does not exist");
+                if (arg.startsWith("--includePackages=")) {
+                    String packagesString = arg.substring("--includePackages=".length());
+                    String[] packages = packagesString.split(",");
+                    Settings.includePackages = Arrays.asList(packages);
+                    continue;
                 }
 
-                try (JarFile jar = new JarFile(f)) {
-                    Stream<JarEntry> entries = enumerationAsStream(jar.entries());
+                File f = getFile(arg);
+                jars.add(f);
+            }
 
-                    String methodCalls = entries.
-                            flatMap(e -> {
-                                if (e.isDirectory() || !e.getName().endsWith(".class"))
-                                    return (new ArrayList<String>()).stream();
-
-                                ClassParser cp = new ClassParser(arg, e.getName());
-                                return getClassVisitor.apply(cp).start().methodCalls().stream();
-                            }).
-                            map(s -> s + "\n").
-                            reduce(new StringBuilder(),
-                                    StringBuilder::append,
-                                    StringBuilder::append).toString();
-
-                    BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
-                    log.write(methodCalls);
-                    log.close();
-                }
+            for (File f : jars) {
+                analyzeJar(f.getAbsolutePath(), f);
             }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private static File getFile(String arg) {
+        File f = new File(arg);
+
+        if (!f.exists()) {
+            System.err.println("Jar file " + arg + " does not exist");
+        }
+        return f;
+    }
+
+    private static Function<ClassParser, ClassVisitor> getClassVisitorFunction() {
+        return (ClassParser cp) -> {
+            try {
+                return new ClassVisitor(cp.parse());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+    }
+
+    private static void analyzeJar(String arg, File f) throws IOException {
+        Function<ClassParser, ClassVisitor> getClassVisitor = getClassVisitorFunction();
+        try (JarFile jar = new JarFile(f)) {
+            Stream<JarEntry> entries = enumerationAsStream(jar.entries());
+
+            String methodCalls = entries.
+                    flatMap(e -> {
+                        if (e.isDirectory() || !e.getName().endsWith(".class"))
+                            return (new ArrayList<String>()).stream();
+
+                        ClassParser cp = new ClassParser(arg, e.getName());
+                        return getClassVisitor.apply(cp).start().methodCalls().stream();
+                    }).
+                    map(s -> s + "\n").
+                    reduce(new StringBuilder(),
+                            StringBuilder::append,
+                            StringBuilder::append).toString();
+
+            BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
+            log.write(methodCalls);
+            log.close();
         }
     }
 
