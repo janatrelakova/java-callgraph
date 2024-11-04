@@ -47,11 +47,17 @@ import org.apache.bcel.classfile.ClassParser;
 public class JCallGraph {
 
     public static void main(String[] args) {
-
         List<File> jars = new ArrayList<>();
 
         try {
             for (String arg : args) {
+                if (arg.startsWith("--includePackages=")) {
+                    String packagesString = arg.substring("--includePackages=".length());
+                    String[] packages = packagesString.split(",");
+                    Settings.includePackages = Arrays.asList(packages);
+                    continue;
+                }
+
                 File f = getFile(arg);
                 jars.add(f);
             }

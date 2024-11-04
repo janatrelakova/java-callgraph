@@ -58,6 +58,11 @@ public class ClassVisitor extends EmptyVisitor {
     }
 
     public void visitJavaClass(JavaClass jc) {
+        String packageName = jc.getPackageName();
+        if (Settings.isExcluded(packageName)) {
+            return;
+        }
+
         jc.getConstantPool().accept(this);
         Method[] methods = jc.getMethods();
         for (int i = 0; i < methods.length; i++) {
