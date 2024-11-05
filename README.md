@@ -35,6 +35,15 @@ Instructions for running the callgraph generators
 java -jar javacg-0.1-SNAPSHOT-static.jar lib1.jar lib2.jar...
 ```
 
+`javacg-static` also accepts `--includePackages` options. This option is optional. 
+If provided, it will only include packages where prefix falls under the specified packages. 
+Otherwise, when this option is not defined, the behavior is to include all packages.
+The option accepts a comma separated list of package prefixes.
+
+```
+java -jar javacg-0.1-SNAPSHOT-static.jar lib1.jar lib2.jar... --includePackages=org.apache.commons,org.apache.lucene
+```
+
 `javacg-static` produces combined output in the following format:
 
 ###### For methods
@@ -57,6 +66,12 @@ for the meaning of the calls):
 For `invokedynamic` calls, it is not possible to infer the argument types.
 
 ###### For classes
+:warning: There was additional check added to verify there is expected count of bootstrap arguments. New language construction `"someString" + "otherString"` seems to cause problem since it is translated to 
+`48:   invokedynamic     0:makeConcatWithConstants (Ljava/lang/String;)Ljava/lang/String; (70)  00
+` in java bytecode and [DynamicCallManager](src/main/java/gr/gousiosg/javacg/stat/DynamicCallManager.java) is looking for `invokedynamic` to identify dynamic invocations.
+For this new construct, there are not enough bootstrap arguments as expected for lambda expression for example.
+
+**However, it should not affect the correctness of the call graph.**
 
 ```
   C:class1 class2
