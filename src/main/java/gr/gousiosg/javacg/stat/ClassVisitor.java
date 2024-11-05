@@ -45,11 +45,11 @@ import java.util.List;
  */
 public class ClassVisitor extends EmptyVisitor {
 
-    private JavaClass clazz;
-    private ConstantPoolGen constants;
-    private String classReferenceFormat;
+    private final JavaClass clazz;
+    private final ConstantPoolGen constants;
+    private final String classReferenceFormat;
     private final DynamicCallManager DCManager = new DynamicCallManager();
-    private List<String> methodCalls = new ArrayList<>();
+    private final List<String> methodCalls = new ArrayList<>();
 
     public ClassVisitor(JavaClass jc) {
         clazz = jc;
@@ -65,12 +65,10 @@ public class ClassVisitor extends EmptyVisitor {
 
         jc.getConstantPool().accept(this);
         Method[] methods = jc.getMethods();
-        for (int i = 0; i < methods.length; i++) {
-            Method method = methods[i];
+        for (Method method : methods) {
             DCManager.retrieveCalls(method, jc);
             DCManager.linkCalls(method);
             method.accept(this);
-
         }
     }
 
